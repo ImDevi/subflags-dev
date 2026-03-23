@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Emoji Flag Converter</title>
+
+<!-- Lexend font -->
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  body {
+    background: #111;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Lexend', sans-serif;
+    padding-top: 40px;
+  }
+
+  #shape {
+    font-family: 'Lexend', sans-serif;
+    padding: 10px 15px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: none;
+    background: #222;
+    color: white;
+    margin-bottom: 20px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  #shape:hover {
+    background: #333;
+  }
+
+  #buttonRow {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+
+  button {
+    font-family: 'Lexend', sans-serif;
+    padding: 12px 25px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    background: #444;
+    color: white;
+    transition: 0.25s;
+  }
+  button:hover {
+    background: #666;
+    transform: translateY(-2px);
+  }
+
+  #outputContainer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    max-width: 90vw;
+    margin-top: 20px;
+  }
+
+  #outputContainer canvas {
+    background: #555;
+    border-radius: 8px;
+    padding: 5px;
+  }
+</style>
+</head>
+<body>
+
+<select id="shape">
+  <option value="rectangle" selected>Rectangle</option>
+  <option value="square">Square</option>
+</select>
+
+<div id="buttonRow">
+  <button id="uploadBtn">Upload</button>
+  <button id="downloadBtn">Download</button>
+</div>
+
+<input type="file" id="upload" accept="image/*" multiple style="display:none">
+
+<canvas id="canvas" width="200" height="200" style="display:none"></canvas>
+
+<div id="outputContainer"></div>
+
+<script>
+const uploadBtn = document.getElementById('uploadBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+const uploadInput = document.getElementById('upload');
+const shapeSelect = document.getElementById('shape');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const outputContainer = document.getElementById('outputContainer');
+
+let processedImages = [];
+let uploadedFiles = [];
+
+ctx.save();
+
+const canvasWidth = 200;
+const canvasHeight = 200;
+const rectWidth = 200;
+const rectHeight = 144;
+const rectY = (canvasHeight - rectHeight) / 2;
+const rectRadius = 35;
+
+uploadBtn.addEventListener('click', () => uploadInput.click());
+
+uploadInput.addEventListener('change', async (e) => {
+  uploadedFiles = Array.from(e.target.files);
+  if (uploadedFiles.length === 0) return;
+  await rerenderAll();
+});
+
+shapeSelect.addEventListener('change', async () => {
+  if (uploadedFiles.length > 0) await rerenderAll();
+});
+
+async function rerenderAll() {
+  processedImages = [];
+  outputContainer.innerHTML = "";
+
+  for (const file of uploadedFiles) {
+    await processSingleImage(file);
+  }
+}
+
+async function processSingleImage(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+
+    img.onload = () => {
+
+      ctx.restore();
+      ctx.save();
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      ctx.beginPath();
+
+      const shape = shapeSelect.value;
+
+      if (shape === "rectangle") {
+        ctx.beginPath();
+        ctx.moveTo(rectRadius, rectY);
+        ctx.lineTo(rectWidth - rectRadius, rectY);
+        ctx.quadraticCurveTo(rectWidth, rectY, rectWidth, rectY + rectRadius);
+        ctx.lineTo(rectWidth, rectY + rectHeight - rectRadius);
+        ctx.quadraticCurveTo(rectWidth, rectY + rectHeight, rectWidth - rectRadius, rectY + rectHeight);
+        ctx.lineTo(rectRadius, rectY + rectHeight);
+        ctx.quadraticCurveTo(0, rectY + rectHeight, 0, rectY + rectHeight - rectRadius);
+        ctx.lineTo(0, rectY + rectRadius);
+        ctx.quadraticCurveTo(0, rectY, rectRadius, rectY);
+        ctx.closePath();
+        ctx.clip();
+
+        ctx.drawImage(img, 0, 0, img.width, img.height, 0, rectY, rectWidth, rectHeight);
+      }
+
+      if (shape === "square") {
+        const squareSize = rectHeight;
+        const squareX = (canvasWidth - squareSize) / 2;
+        const squareY = rectY;
+        const radius = rectRadius;
+
+        ctx.beginPath();
+        ctx.moveTo(squareX + radius, squareY);
+        ctx.lineTo(squareX + squareSize - radius, squareY);
+        ctx.quadraticCurveTo(squareX + squareSize, squareY, squareX + squareSize, squareY + radius);
+        ctx.lineTo(squareX + squareSize, squareY + squareSize - radius);
+        ctx.quadraticCurveTo(squareX + squareSize, squareY + squareSize, squareX + squareSize - radius, squareY + squareSize);
+        ctx.lineTo(squareX + radius, squareY + squareSize);
+        ctx.quadraticCurveTo(squareX, squareY + squareSize, squareX, squareY + squareSize - radius);
+        ctx.lineTo(squareX, squareY + radius);
+        ctx.quadraticCurveTo(squareX, squareY, squareX + radius, squareY);
+        ctx.closePath();
+        ctx.clip();
+
+        ctx.drawImage(
+          img,
+          0, 0, img.width, img.height,
+          squareX, squareY,
+          squareSize, squareSize
+        );
+      }
+
+      const url = canvas.toDataURL();
+
+      processedImages.push({
+        url,
+        name: file.name
+      });
+
+      const copy = document.createElement("canvas");
+      copy.width = canvasWidth;
+      copy.height = canvasHeight;
+      const copyCtx = copy.getContext("2d");
+      copyCtx.drawImage(canvas, 0, 0);
+
+      outputContainer.appendChild(copy);
+
+      resolve();
+    };
+
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+downloadBtn.addEventListener('click', () => {
+  if (processedImages.length === 0) return;
+
+  processedImages.forEach((item) => {
+    const link = document.createElement('a');
+    link.href = item.url;
+
+    const baseName = item.name.replace(/\.[^/.]+$/, "");
+    link.download = `${baseName}.png`;
+
+    link.click();
+  });
+});
+</script>
+
+</body>
+</html>
