@@ -1,6 +1,6 @@
 subflags-dev
 -----------------------------------------------------------------------------------------------
-**subflags dev** is a tool for creating flag emojis out of flag images.
+**subflags-dev** is a tool for creating flag emojis out of flag images.
 
 How to use subflags-dev?
 -----------------------------------------------------------------------------------------------
